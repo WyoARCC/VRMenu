@@ -1,0 +1,756 @@
+#! /usr/bin/wish -f
+
+#########################################################################
+## Tabbed Notebook code from "Effective Tcl/Tk Programming"
+#########################################################################
+
+# Define control variables
+
+
+# for cave
+#set PLATFORM "-cave"
+# for 3D TV
+#set PLATFORM "-3D"
+# for laptop
+set PLATFORM ""
+
+set basedir "/home/demo/workspace"
+
+
+
+#########################################################################
+## Example of how to make use of the tabbed notebook code:
+# source tktabs
+# tabnotebook_create .tn
+# pack .tn
+# set p1 [tabnotebook_page .tn "Colors"]
+# set p2 [tabnotebook_page .tn "Yo"]  
+# label $p1.mesg -text "Something on Colors page"
+# pack $p1.mesg -side left -expand yes -pady 8
+
+
+#########################################################################
+## Stuff from pp 32-35 of book for doing a normal "notebook frame"
+proc notebook_create {win} {
+	global nbInfo
+
+	#frame $win -class Notebook  -- orig
+	frame $win -class Notebook -bg blue
+	pack propagate $win 0
+	set nbInfo($win-count) 0
+	set nbInfo($win-pages) ""
+	set nbInfo($win-current) ""
+
+	return $win
+}
+
+proc notebook_page {win name} {
+	global nbInfo
+
+	set page "$win.page[incr nbInfo($win-count)]"
+	lappend nbInfo($win-pages) $page
+	set nbInfo($win-page-$name) $page
+
+	frame $page
+	if {$nbInfo($win-count) == 1} {
+		after idle [list notebook_display $win $name]
+	}
+
+	return $page
+}
+
+proc notebook_display {win name} {
+	global nbInfo
+
+	set page ""
+	if {[info exists nbInfo($win-page-$name)]} {
+		set page $nbInfo($win-page-$name)
+	} elseif {[winfo exists $win.page$name]} {
+		set page $win.page$name
+	}
+
+	if {$page == ""} {
+		error "bad notebook page \"$name\""
+	}
+
+	notebook_fix_size $win
+
+	if {$nbInfo($win-current) != ""} {
+		pack forget $nbInfo($win-current)
+	}
+
+	#pack $page -expand yes -fill both -- orig
+	pack $page -expand yes -fill x -anchor n; # NOTE: this "anchor" option is required to render each page at the top of the notebook!
+	set nbInfo($win-current) $page
+}
+
+proc notebook_fix_size {win} {
+	global nbInfo
+
+	update idletasks
+
+	set maxw 0
+	set maxh 0
+	foreach page $nbInfo($win-pages) {
+		set w [winfo reqwidth $page]
+		if {$w > $maxw} {
+			set maxw $w
+		}
+		set h [winfo reqheight $page]
+		if {$h > $maxh} {
+			set maxh $h
+		}
+	}
+
+	# This section sets the size of the overall window, based on
+	#   the maximum size requested from all windows.
+	set bd [$win cget -borderwidth]
+	set maxw [expr $maxw+2*$bd] 
+	set maxh [expr $maxh+2*$bd] 
+	$win configure -width $maxw -height $maxh
+}
+
+
+#########################################################################
+## Stuff from pp 136-141 for doing a tabbed notebook frames
+
+proc tabnotebook_create {win} {
+	# TODO: if $win exists, then use it, rather than creating a new frame
+	#   Hint: Use the 'winfo exists $win' command
+	#   Problem: Once a widget exists, its class can't be changed:
+	#     - i.e. '$win configure -class Tabnotebook' doesn't work
+	global tnInfo
+
+	frame $win -class Tabnotebook
+	canvas $win.tabs -highlightthickness 0; # I tried changing this to frame, but it didn't work -- I was trying to a) fix the sizing problem (now fixed via the real culprit), and b) fix the key-binding problem (still not fixed)
+	pack $win.tabs -fill both -expand true;# -- orig (I think)
+	#pack $win.tabs -fill x -expand true -side top -anchor n
+
+
+	notebook_create $win.notebook
+	pack $win.notebook -expand yes -fill both;# -- orig (I think)
+	#pack $win.notebook -expand yes -fill x -side top -anchor n
+
+	set tnInfo($win-tabs) ""
+	set tnInfo($win-current) ""
+	set tnInfo($win-pending) ""
+
+	return $win
+}
+
+option add *Tabnotebook.tabs.background #996666 widgetDefault
+option add *Tabnotebook.margin 6 widgetDefault
+option add *Tabnotebook.tabColor #a6a6a6 widgetDefault
+option add *Tabnotebook.activeTabColor #d9d9d9 widgetDefault
+option add *Tabnotebook.tabFont -*-helvetica-bold-r-normal--*-120_* widgetDefault
+
+proc tabnotebook_page {win name} {
+	global tnInfo
+
+
+	set page [notebook_page $win.notebook $name]
+	lappend tnInfo($win-tabs) $name
+
+
+	if {$tnInfo($win-pending) == ""} {
+		set id [after idle [list tabnotebook_refresh $win]]
+		set tnInfo($win-pending) $id
+	}
+	return $page
+}
+
+proc tabnotebook_refresh {win} {
+        global tnInfo
+
+        $win.tabs delete all
+
+        set margin [option get $win margin Margin]
+	set color [option get $win tabColor Color]
+	set font [option get $win tabFont Font]
+	set x 2
+	set maxh 0
+
+
+	foreach name $tnInfo($win-tabs) {
+		set id [$win.tabs create text \
+			[expr $x+$margin+2] [expr -0.5*$margin] \
+			-anchor sw -text $name -font $font -tags [list $name]]
+
+		set bbox [$win.tabs bbox $id]
+		set wd [expr [lindex $bbox 2]-[lindex $bbox 0]]
+		set ht [expr [lindex $bbox 3]-[lindex $bbox 1]]
+		if {$ht > $maxh} {
+			set maxh $ht
+		}
+
+		$win.tabs create polygon 0 0 $x 0 \
+			[expr $x+$margin] [expr -$ht-$margin] \
+			[expr $x+$margin+$wd] [expr -$ht-$margin] \
+			[expr $x+$wd+2*$margin] 0 \
+			0200 0  0200 10  0 10 \
+			-outline black -fill $color \
+			-tags [list $name tab tab-$name]
+
+		$win.tabs raise $id
+
+		$win.tabs bind $name <ButtonPress-1> \
+			[list tabnotebook_display $win $name]
+
+		set x [expr $x+$wd+2*$margin]
+	}
+
+	set height [expr $maxh+2*$margin]
+	$win.tabs move all 0 $height
+
+	$win.tabs configure -width $x -height [expr $height+4]
+
+	if {$tnInfo($win-current) != ""} {
+		tabnotebook_display $win $tnInfo($win-current)
+	} else {
+	       tabnotebook_display $win [lindex $tnInfo($win-tabs) 0]
+	}
+	set tnInfo($win-pending) ""
+}
+
+proc tabnotebook_display {win name} {
+	global tbInfo
+
+	notebook_display $win.notebook $name
+
+	set normal [option get $win tabColor Color]
+	$win.tabs itemconfigure tab -fill $normal
+
+	set active [option get $win activeTabColor Color]
+	$win.tabs itemconfigure tab-$name -fill $active
+	$win.tabs raise $name
+
+	set tnInfo($win-current) $name
+}
+
+## End of Tabbed Notebook code from "Effective Tcl/Tk Programming"
+#########################################################################
+
+
+
+###################################################################
+proc run_app { name dir command args } {
+	global toggle_mono
+	global toggle_storeoutput
+	global basedir
+
+	set run_vrapp [concat $basedir/VRMenu/runvrapp ]
+
+	set run_args ""
+	if {$toggle_mono == 1} {
+		set run_args [concat $run_args "-mono" ]
+	}
+
+	puts "--------------------------------------------------------------------------"
+	puts "--------------------------------------------------------------------------"
+	puts "about to run $name in $dir - $run_vrapp"
+
+	if {$toggle_storeoutput} {
+		catch { exec $run_vrapp $run_args $name $dir $command $args } result
+		puts $result
+	} else {
+		catch { exec $run_vrapp $run_args $name $dir $command $args }
+		puts $command
+	}
+
+	puts "done running $name in $dir"
+}
+
+
+###################################################################
+
+# remove the default Tk window
+wm withdraw .
+
+# Create and initialize the main Tk window
+toplevel .mainmenu -width 400 -height 100 -bg white
+wm title .mainmenu "VR Applications"
+
+#label .mainmenu.label -text "  Press a button to start an application:  " -bg gray40 -fg white -font "Helvetica -30 bold"
+#pack .mainmenu.label -fill x -expand yes
+
+
+###################################################################
+# Create a (hidden) popup window for various options
+
+toplevel .options
+wm title .options "VR Options"
+wm withdraw .options
+
+label .options.label -text "  Optional settings for how the application should run  " -bg gray40 -fg white -font "Helvetica -20 bold"
+pack .options.label -fill x -expand yes
+
+
+set toggle_mono 0
+checkbutton .options.mono -text "Run in Mono-mode" -variable toggle_mono
+pack .options.mono -fill x -expand yes
+
+
+set toggle_storeoutput 0
+checkbutton .options.output -text "Store application output" -variable toggle_storeoutput
+pack .options.output -fill x -expand yes
+
+
+###################################################################
+## Create the tabs
+
+#source tktabs; # No longer needed, since we directly include the code
+
+tabnotebook_create .mainmenu.tabs
+pack .mainmenu.tabs
+
+## A tab of standard demo applications
+set page_std [tabnotebook_page .mainmenu.tabs "Volume"]
+label $page_std.msg -text "Volume Visualization"
+pack $page_std.msg -side top -fill x -expand yes -anchor n
+
+## A tab of our science applications
+set page_edu [tabnotebook_page .mainmenu.tabs "Visualizer"]
+label $page_edu.msg -text "3DVisualizer"
+pack $page_edu.msg -side top -fill x -expand yes -anchor n
+
+## A tab of our Chemistry Apps
+set page_chem [tabnotebook_page .mainmenu.tabs "Chemistry"]
+label $page_chem.msg -text "Chemistry Apps"
+pack $page_chem.msg -fill x -expand yes -anchor n
+
+## A tab of our Models Apps
+set page_model [tabnotebook_page .mainmenu.tabs "Models"]
+label $page_model.msg -text "Model Apps"
+pack $page_model.msg -fill x -expand yes -anchor n
+
+## A tab of Geographic Apps / fun applications
+set page_geo [tabnotebook_page .mainmenu.tabs "GEO"]
+label $page_geo.msg -text "Geographic Apps"
+pack $page_geo.msg -fill x -expand yes -anchor n
+
+## A tab of our netvr applications
+set page_netvr [tabnotebook_page .mainmenu.tabs "NetVR"]
+label $page_netvr.msg -text "NetVR"
+pack $page_netvr.msg -fill x -expand yes -anchor n
+
+## A tab of our diverions / ATR
+set page_atr [tabnotebook_page .mainmenu.tabs "ATR"]
+label $page_atr.msg -text "ATR"
+pack $page_atr.msg -fill x -expand yes -anchor n
+
+## A tab of our misc applications
+set page_misc [tabnotebook_page .mainmenu.tabs "Misc"]
+label $page_misc.msg -text "Misc"
+pack $page_misc.msg -fill x -expand yes -anchor n
+
+###################################################################
+## Set some event bindings
+
+# When the 'O' key is pressed, popup the options window
+bind .mainmenu <o> { wm deiconify .options }
+bind .mainmenu <p> { wm withdraw .options }
+bind .options <q> { wm withdraw .options ; break }
+bind .mainmenu <q> { puts "exiting from mainmenu"; exit }
+
+bind all <q> { puts "exiting from all" ; exit }
+
+# These don't work -- TODO: fix them or at least figure out why they don't work
+#   Does it have something to do with the setting of frame to be
+#   "-class Tabnotebook" ?
+bind .mainmenu.tabs <o> { wm deiconify .options }
+bind .mainmenu.tabs <p> { wm withdraw .options }
+bind .mainmenu.tabs <q> { puts "exiting from tabs" ; exit }
+bind .mainmenu.tabs.tabs <q> { puts "exiting from tabs.tabs" ; exit }
+bind .mainmenu.tabs.notebook <q> { puts "exiting from notebook" ; exit }
+
+
+
+###################################################################
+###################################################################
+####                      The Applications                     ####
+
+
+# The "numapps" variable basically counts the number of
+#   buttons that have been added, so each button widget
+#   will have a unique name.
+set numapps 0
+
+# Toirt-Samhlaigh -- Neghip
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Neghip" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/neghip${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Tunicate
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Tunicate" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/tunicate_in${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Visible Male
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Visible Male" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/vismale${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Staghorn Beetle
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Staghorn Beetle" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/staghorn${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Foot
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Foot" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/foot${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Aneurism
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Aneurism" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/aneurism${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Bluntfin
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Bluntfin" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/bluntfin${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Hydrogen
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Hydrogen" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/hydrogen${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Kidney
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Kidney" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/kidney${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- Shockwave
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "Shockwave" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/shockwave${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+
+# Toirt-Samhlaigh -- mcnp
+set numapps [expr $numapps + 1]
+button $page_std.app_$numapps -relief raised -text "mcnp" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Toirt-Samhlaigh ${basedir}/Toirt-Samhlaigh ./scripts/mcnp${PLATFORM}.sh}
+pack $page_std.app_$numapps -fill x -expand true
+set numapps 0
+
+# 3DVisualizer -- Alaska
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "Alaska" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/alaska${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- mcnp
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "mcnp" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/mcnp${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- mcnp
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "mcnp flux only" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/mcnpfluxonly${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- materials-l-100
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "materials - log 100" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-100${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- materials-l-200
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "materials - log 200" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-200${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- materials-l-300
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "materials - log 300" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-300${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- materials-l-300
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "materials - log 300" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-300${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+# 3DVisualizer -- materials-l-500
+set numapps [expr $numapps + 1]
+button $page_edu.app_$numapps -relief raised -text "materials - log 500" \
+        -font "Helvetica -24 bold" \
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-500${PLATFORM}.sh}
+pack $page_edu.app_$numapps -fill x -expand true
+
+set numapps 0
+
+# Chemistry 1IN0 app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "1IN0" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/1IN0${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry 1pgx app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "1pgx" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/1pgx${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry 1SSN_2 app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "1SSN_2" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/1SSN_2${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry 1SSN app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "1SSN" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/1SSN${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry 2KQ3 app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "2KQ3" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/2KQ3${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry igg1-cac app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "igg1-cac" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/igg1-cac${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry igg1-all app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "igg1-all" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/igg1-all${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+# Chemistry t146 app
+set numapps [expr $numapps + 1]
+button $page_chem.app_$numapps -relief raised -text "t146" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VRProteinShop ${basedir}/VRProteinShop/ ./scripts/t146${PLATFORM}.sh}
+pack $page_chem.app_$numapps -fill x -expand true
+
+set numapps 0
+
+# Rocket Model App
+set numapps [expr $numapps + 1]
+button $page_model.app_$numapps -relief raised -text "Rocket" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VNPP ${basedir}/rocket/trunk ./rocket${PLATFORM}.sh}
+pack $page_model.app_$numapps -fill x -expand true
+
+set numapps 0
+
+# LidarViewer -- Jenny Lake
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "Jenny Lake" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/jennylake${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- San Andreas
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "San Andreas" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/sanandreas${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- CAES Exterior
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "CAES Exterior" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/CAES_exterior${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- CAES Exterior bundler
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "CAES Exterior bundler" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/caes_photo${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- CAES Fluids Lab
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "CAES Fluids Lab" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/CAES_fluidsLab${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- CAES Kitchen
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "CAES Kitchen" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/kitchen${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- devils wash
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "Devil's Wash" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/devilswash${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+# LidarViewer -- IF Power
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "IF Power" \
+        -font "Helvetica -24 bold" \
+        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/IFPower${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+
+
+# Show the Earth Model
+set numapps [expr $numapps + 1]
+button $page_geo.app_$numapps -relief raised -text "Show Earth" \
+        -font "Helvetica -24 bold" \
+        -command {run_app ShowEarthModel ${basedir}/ShowEarthModel ./scripts/quakes${PLATFORM}.sh}
+pack $page_geo.app_$numapps -fill x -expand true
+
+set numapps 0
+
+# NetVR
+set numapps [expr $numapps + 1]
+button $page_netvr.app_$numapps -relief raised -text "Example" \
+        -font "Helvetica -24 bold" \
+        -command {run_app NetVR ${basedir}/NetVR ./scripts/netvr${PLATFORM}.sh}
+pack $page_netvr.app_$numapps -fill x -expand true
+
+set numapps 0
+
+#ATR Core
+set numapps [expr $numapps + 1]
+button $page_atr.app_$numapps -relief raised -text "ATR Core FreeVR" \
+        -font "Helvetica -24 bold" \
+        -command {run_app atrViewer ${basedir}/ATR ./atrViewer}
+pack $page_atr.app_$numapps -fill x -expand true
+
+#ATR Core
+set numapps [expr $numapps + 1]
+button $page_atr.app_$numapps -relief raised -text "ATR Core Vrui" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Delta3DVrui ${basedir}/delta3dVrui/trunk ./bin/Delta3DVrui}
+pack $page_atr.app_$numapps -fill x -expand true
+
+#Virtual ATR
+set numapps [expr $numapps + 1]
+button $page_atr.app_$numapps -relief raised -text "Virtual ATR" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VirtualATR ${basedir}/Virtual-ATR/trunk/ ./ATR${PLATFORM}.sh}
+pack $page_atr.app_$numapps -fill x -expand true
+
+#ATR Vessel
+set numapps [expr $numapps + 1]
+button $page_atr.app_$numapps -relief raised -text "ATR Vessel" \
+        -font "Helvetica -24 bold" \
+        -command {run_app VirtualATR ${basedir}/ATR-Vessel/trunk/ ./ATR${PLATFORM}.sh}
+pack $page_atr.app_$numapps -fill x -expand true
+
+#set numapps [expr $numapps + 1]
+#button .mainmenu.app_$numapps -relief raised -text "CQ3A: Town" \
+#        -font "Helvetica -24 bold" \
+#        -command { run_app CQ3A:Town /home/poleary/Apps/cq3a/cq3a-0.9.2-src ./cq3a --notitle --spots ../spots_ikzdm1.txt --noitems maps/ikzdm1.bsp ../ikzdm1.pk3 }
+#pack .mainmenu.app_$numapps -fill x -expand true
+
+###################################################
+# Misc apps (mostly from Bill)
+
+# Cave5D running Chesapeake Bay data
+set numapps [expr $numapps + 1]
+button $page_misc.app_$numapps -relief raised -text "Cave5D: Chesapeake Bay" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Cave5D-Cbay ${basedir}/cave5d-2.0.1/data/ChesBay/1996 /usr/local/bin/cave5d cbay.tcl }
+pack $page_misc.app_$numapps -fill x -expand true
+
+# Sandbox
+set numapps [expr $numapps + 1]
+button $page_misc.app_$numapps -relief raised -text "Sandbox Weather" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Sandbox ${basedir}/Sandbox ./sandbox }
+pack $page_misc.app_$numapps -fill x -expand true
+
+# Simple Paint (aka MP1)
+set numapps [expr $numapps + 1]
+button $page_misc.app_$numapps -relief raised -text "Simple Paint" \
+        -font "Helvetica -24 bold" \
+        -command {run_app MP1-Paint ${basedir}/Paint ./mp_3dpaint }
+pack $page_misc.app_$numapps -fill x -expand true
+
+# Crayoland
+set numapps [expr $numapps + 1]
+button $page_misc.app_$numapps -relief raised -text "Crayoland" \
+        -font "Helvetica -24 bold" \
+        -command {run_app Crayoland ${basedir}/crayoland_20050502/src ./cray }
+pack $page_misc.app_$numapps -fill x -expand true
+
+
+###################################################
+# General Commands
+
+# The Start Device Daemon
+button .mainmenu.start -relief raised -text "Start Device Daemon" \
+        -font "Helvetica -24 bold"                                      \
+        -command { exec ${basedir}/VRMenu/VRDeviceDaemon.sh & }
+pack .mainmenu.start -fill x -expand true
+
+# The Stop Device Daemon
+button .mainmenu.stop -relief raised -text "Stop Device Daemon" \
+        -font "Helvetica -24 bold"                                      \
+        -command { exec ${basedir}/VRMenu/stopvrdd &}
+pack .mainmenu.stop -fill x -expand true
+
+# Restart Device Daemon out of ATR
+#button .mainmenu.restart -relief raised -text "Restart vrdd from ATR" \
+#        -font "Helvetica -24 bold"                                      \
+#        -command { exec ${basedir}/VRMenu/restartvrdd.sh & }
+#pack .mainmenu.restart -fill x -expand true
+
+# Sync Stereo
+button .mainmenu.stereo -relief raised -text "Sync Stereo" \
+        -font "Helvetica -24 bold"                                      \
+        -command { exec ${basedir}/bin/framelock.sh  }
+pack .mainmenu.stereo -fill x -expand true
+
+# The Quit button
+button .mainmenu.quit -relief raised -text "Quit" \
+        -font "Helvetica -24 bold"                                      \
+        -command { exit }
+pack .mainmenu.quit -fill x -expand true
+
+

@@ -1,0 +1,31 @@
+#! /bin/csh -fx
+
+# Csh script to take a name, a directory, an executable name,
+#   and arguments to the executable, and run them in the
+#   background.
+
+# TODO:
+#   Put the running data into a log file
+
+echo argv1 is $argv[1]
+
+if (x$argv[1] == "x-mono") then
+	setenv FVR_MONO 1
+	shift
+endif
+
+# When TCL runs 'exec' even empty strings occupy an argv[] slot, so skip
+if ($argv[1] == "") then
+	shift
+endif
+
+set name = $argv[1]
+set dir = $argv[2]
+set command = $argv[3]
+shift; shift; shift;
+set args = "$argv[*]"
+
+echo Running application $name -- dir = $dir, name = $name, command = $command, args = $args
+cd $dir
+$command $args 
+
