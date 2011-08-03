@@ -268,7 +268,7 @@ wm withdraw .
 
 # Create and initialize the main Tk window
 toplevel .mainmenu -width 400 -height 100 -bg white
-wm title .mainmenu "VR Applications"
+wm title .mainmenu "VRMenu"
 
 #label .mainmenu.label -text "  Press a button to start an application:  " -bg gray40 -fg white -font "Helvetica -30 bold"
 #pack .mainmenu.label -fill x -expand yes
