@@ -10,9 +10,9 @@
 # for cave
 #set PLATFORM "-cave"
 # for 3D TV
-#set PLATFORM "-3D"
+set PLATFORM "-3D"
 # for laptop
-set PLATFORM ""
+#set PLATFORM ""
 
 set basedir "/home/demo/workspace"
 
@@ -457,56 +457,56 @@ set numapps 0
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "Alaska" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/alaska${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/alaska${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- mcnp
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "mcnp" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/mcnp${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/mcnp${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- mcnp
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "mcnp flux only" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/mcnpfluxonly${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/mcnpfluxonly${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- materials-l-100
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "materials - log 100" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-100${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/materials-l-100${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- materials-l-200
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "materials - log 200" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-200${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/materials-l-200${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- materials-l-300
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "materials - log 300" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-300${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/materials-l-300${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- materials-l-300
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "materials - log 300" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-300${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/materials-l-300${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 # 3DVisualizer -- materials-l-500
 set numapps [expr $numapps + 1]
 button $page_edu.app_$numapps -relief raised -text "materials - log 500" \
         -font "Helvetica -24 bold" \
-        -command {run_app 3DVisualizer ${basedir}/3DVisualizer-1.7 ./scripts/materials-l-500${PLATFORM}.sh}
+        -command {run_app 3DVisualizer ${basedir}/3DVisualizer ./scripts/materials-l-500${PLATFORM}.sh}
 pack $page_edu.app_$numapps -fill x -expand true
 
 set numapps 0
@@ -582,56 +582,56 @@ set numapps 0
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "Jenny Lake" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/jennylake${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/jennylake${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- San Andreas
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "San Andreas" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/sanandreas${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/sanandreas${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- CAES Exterior
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "CAES Exterior" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/CAES_exterior${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/CAES_exterior${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- CAES Exterior bundler
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "CAES Exterior bundler" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/caes_photo${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/caes_photo${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- CAES Fluids Lab
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "CAES Fluids Lab" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/CAES_fluidsLab${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/CAES_fluidsLab${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- CAES Kitchen
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "CAES Kitchen" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/kitchen${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/kitchen${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- devils wash
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "Devil's Wash" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/devilswash${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/devilswash${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 # LidarViewer -- IF Power
 set numapps [expr $numapps + 1]
 button $page_geo.app_$numapps -relief raised -text "IF Power" \
         -font "Helvetica -24 bold" \
-        -command {run_app LidarViewer ${basedir}/LidarViewer-2.5 ./scripts/IFPower${PLATFORM}.sh}
+        -command {run_app LidarViewer ${basedir}/LidarViewer ./scripts/IFPower${PLATFORM}.sh}
 pack $page_geo.app_$numapps -fill x -expand true
 
 
