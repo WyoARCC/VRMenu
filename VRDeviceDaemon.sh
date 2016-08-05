@@ -1,2 +1,5 @@
 #! /bin/bash
-xterm -e "/opt/local/Vrui-1.0/bin/VRDeviceDaemon" &
+
+source config.sh
+xterm -e ${VRUI_ROOT}/bin/VRDeviceDaemon
+
