@@ -1,5 +1,5 @@
 #! /bin/bash
 
-BASEDIR=/home/demo/workspace
+source config.sh
 killall -9 VRDeviceDaemon
-$BASEDIR/VRMenu/VRDeviceDaemon.sh &
+/home/mechdyne/workspace/VRMenu/VRDeviceDaemon.sh &
